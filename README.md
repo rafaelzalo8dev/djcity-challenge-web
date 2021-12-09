@@ -12,4 +12,6 @@ Frontend project for the DJ City challenge.
 - axios
 
 # Autor
-Rafael Zavala - 08/Dec/2021
+- Rafael Zavala
+- Release: 08/Dec/2021 
+- Please feel free to keep on touch at my mail: rafael.zavala@encora.com
