@@ -20,9 +20,8 @@ export const get = url =>
       });
   });
 
-export const post = data => {
-  console.log('data ', data);
-  return new Promise((resolve, reject) => {
+export const post = data =>
+  new Promise((resolve, reject) => {
     apiCall
       .post(data.url, data.body)
       .then(response => {
@@ -32,4 +31,21 @@ export const post = data => {
         reject(err);
       });
   });
-};
+
+export const postRecaptcha = data =>
+  new Promise((resolve, reject) => {
+    const VERIFY_URL =
+      'https://cors-anywhere.herokuapp.com/https://www.google.com/recaptcha/api/siteverify';
+    return fetch(VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${data.body.secret}&response=${data.body.response}`,
+    })
+      .then(response => response.json())
+      .then(result => {
+        resolve(result);
+      })
+      .catch(err => {
+        reject(err);
+      });
+  });

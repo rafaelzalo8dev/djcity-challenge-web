@@ -4,7 +4,7 @@
  *
  */
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Helmet } from 'react-helmet';
@@ -12,7 +12,7 @@ import { compose } from 'redux';
 import { Input, Button } from '@material-ui/core';
 import {
   GoogleReCaptchaProvider,
-  GoogleReCaptcha,
+  useGoogleReCaptcha,
 } from 'react-google-recaptcha-v3';
 
 import {
@@ -22,14 +22,37 @@ import {
   Title,
 } from './styles';
 
-import { login } from '../../services/auth';
+import { login, verifyRecaptcha } from '../../services/auth';
 
 import messages from './messages';
 
+const RecaptchaButton = props => {
+  const [firstTime, setFirstTime] = useState(true);
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  // Create an event handler so you can call the verification on button click event or form submit
+  const handleReCaptchaVerify = useCallback(async () => {
+    if (!executeRecaptcha) {
+      return;
+    }
+
+    const token = await executeRecaptcha('login');
+    const verifyToken = await verifyRecaptcha(token);
+    props.onClickVerified(verifyToken);
+  }, []);
+
+  useEffect(() => {
+    if (!firstTime) handleReCaptchaVerify();
+    setFirstTime(false);
+  }, [handleReCaptchaVerify]);
+
+  return <Button onClick={handleReCaptchaVerify}>Verify recaptcha</Button>;
+};
 export function Login(props) {
   const { history } = props;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -52,8 +75,13 @@ export function Login(props) {
     }
   };
 
-  const handleVerify = () => {
-    console.log('en el handle verify');
+  const onClickVerified = result => {
+    if (result.success) setVerified(true);
+    alert(
+      `Recaptcha verified succesfully with a score: ${
+        result.score
+      } reaching the 1`,
+    );
   };
 
   return (
@@ -62,9 +90,6 @@ export function Login(props) {
         <title>Login</title>
         <meta name="description" content="Description of Login" />
       </Helmet>
-      <GoogleReCaptchaProvider reCaptchaKey="6Le0Mo0dAAAAAM4Sb1pn4p3c3BPFREV0jrc4h6hl">
-        <GoogleReCaptcha onVerify={handleVerify} />
-      </GoogleReCaptchaProvider>
       <Title>DJ City - Challenge</Title>
       <FormContainer>
         <Title>Login to search your favorite songs on iTunes API</Title>
@@ -87,9 +112,17 @@ export function Login(props) {
           />
         </InputContainer>
         <ActionContainer>
+          <GoogleReCaptchaProvider
+            reCaptchaKey="6Le0Mo0dAAAAAM4Sb1pn4p3c3BPFREV0jrc4h6hl"
+            render="explicit"
+          >
+            <RecaptchaButton onClickVerified={onClickVerified} />
+          </GoogleReCaptchaProvider>
+        </ActionContainer>
+s        <ActionContainer>
           <Button
             onClick={() => onSubmitLogin()}
-            disabled={!email || !password}
+            disabled={!email || !password || !verified}
           >
             {messages.buttons.submit}
           </Button>
